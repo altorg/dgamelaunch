@@ -1925,7 +1925,7 @@ char *file_name;
 		in_string[length] = 0;
 		get_line(length, in_string, &append);
 	}
-	if ((can_read) && (curr_line->line_length == 1))
+	if ((can_read) && (curr_line->line_length == 1) && (curr_line->prev_line))
 	{
 		temp_line = curr_line->prev_line;
 		temp_line->next_line = curr_line->next_line;
@@ -1968,7 +1968,7 @@ int *append;	/* TRUE if must append more text to end of current line	*/
 	struct text *tline;	/* temporary pointer to new line	*/
 	int first_time;		/* if TRUE, the first time through the loop */
 	wchar_t in_string[MAX_FILE];
-	length = mbstowcs(in_string, in_str, sizeof(in_string));
+	length = mbstowcs(in_string, in_str, sizeof(in_string)/sizeof(wchar_t));
 
 	if (length == -1) {
 	    wmove(com_win, 0, 0);
