@@ -2051,9 +2051,13 @@ newuser ()
 int
 passwordgood (char *cpw)
 {
+  char *crypted;
   assert (me != NULL);
 
-  if (!strncmp (crypt (cpw, cpw), me->password, DGL_PASSWDLEN))
+  crypted = crypt (cpw, cpw);
+  if (crypted == NULL)
+      return 0;
+  if (!strncmp (crypted, me->password, DGL_PASSWDLEN))
     return 1;
   if (!strncmp (cpw, me->password, DGL_PASSWDLEN))
     return 1;
@@ -2262,7 +2266,7 @@ userexist (char *cname, int isnew)
     if (isnew && (strlen(cname) >= globalconfig.max_newnick_len))
 	strcat(tmpbuf, "%");
 
-    qbuf = sqlite3_mprintf("select * from dglusers where username like '%q' limit 1", tmpbuf);
+    qbuf = sqlite3_mprintf("select * from dglusers where username = '%q' collate nocase limit 1", tmpbuf);
 
     ret = sqlite3_open(globalconfig.passwd, &db);
     if (ret) {
