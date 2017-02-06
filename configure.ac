@@ -15,9 +15,9 @@ if test -z "$LEX"; then
    AC_MSG_ERROR([lex or flex not found.])
 fi
 
-LIBS="$LIBS $LEXLIB"
+AC_CHECK_LIB(pthread, pthread_create, [PTHREAD_LIBS+=-lpthread])
 
-AC_CHECK_LIB(pthread, pthread_create, [PTHREAD_CFLAGS+=-lpthread])
+LIBS="$LIBS $LEXLIB $PTHREAD_LIBS"
 
 AC_CHECK_PROGS(YACC, 'bison -y' byacc yacc)
 if test -z "$YACC"; then
