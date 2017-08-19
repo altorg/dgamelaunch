@@ -12,7 +12,6 @@ phases:
     commands:
       - apt-get update
       - apt-get install -y bison
-      - apt-get install -y yacc
   build:
     commands:
       - echo Build started on `date`
