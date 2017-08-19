@@ -12,6 +12,7 @@ phases:
     commands:
       - apt-get update
       - apt-get install -y bison
+      - apt-get install -y libncursesw5 libncursesw5-dev
   build:
     commands:
       - echo Build started on `date`
