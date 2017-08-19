@@ -10,8 +10,9 @@ phases:
       - echo Nothing
   pre_build:
     commands:
-      - apt-get install bison
-      - apt-get install yacc
+      - apt-get update
+      - apt-get install -y bison
+      - apt-get install -y yacc
   build:
     commands:
       - echo Build started on `date`
