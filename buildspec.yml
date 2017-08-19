@@ -11,7 +11,7 @@ phases:
   pre_build:
     commands:
       - apt-get update
-      - apt-get install -y bison
+      - apt-get install -y bison flex
       - apt-get install -y libncursesw5 libncursesw5-dev
   build:
     commands:
