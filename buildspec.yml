@@ -10,12 +10,11 @@ phases:
       - echo Nothing
   pre_build:
     commands:
-      - echo Nothing to do in the pre_build phase...
+      - apt-get install bison
+      - apt-get install yacc
   build:
     commands:
       - echo Build started on `date`
-      - ls
-      - pwd
       - bash autogen.sh
       - make
   post_build:
