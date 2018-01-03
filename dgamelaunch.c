@@ -950,7 +950,7 @@ game_get_column_data(struct dg_game *game,
 
     case SORTMODE_WINDOWSIZE:
         if (myconfig[game->gamenum]->watch_path) {
-            snprintf(data, bufsz, "N/A");
+            snprintf(data, bufsz, "  N/A");
             *hilite = CLR_GREEN;
             break;
         }
