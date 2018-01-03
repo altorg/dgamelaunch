@@ -24,6 +24,7 @@ extern void (*g_chain_winch)(int);
 struct dg_config **myconfig = NULL;
 struct dg_config defconfig = {
   /* game_path = */ "/bin/nethack",
+  /* watch_path = */ NULL,
   /* game_name = */ "NetHack",
   /* game_id = */ NULL,
   /* shortname = */ "NH",
@@ -32,10 +33,13 @@ struct dg_config defconfig = {
   /* spool = */ "/var/mail/",
   /* inprogressdir = */ "%rinprogress/",
   /* num_args = */ 0,
+  /* num_wargs = */ 0,
   /* bin_args = */ NULL,
+  /* watch_args = */ NULL,
   /* rc_fmt = */ "%rrcfiles/%n.nethackrc", /* [dglroot]rcfiles/[username].nethackrc */
   /* cmdqueue = */ NULL,
   /* postcmdqueue = */ NULL,
+  /* watchcmdqueue = */ NULL,
   /* max_idle_time = */ 0,
   /* extra_info_file = */ NULL,
   /* encoding */ 0
@@ -106,11 +110,14 @@ dgl_find_menu(char *menuname)
 /*
  * replace following codes with variables:
  * %u == shed_uid (number)
+ * %l == logged-in user (string; from 'me'. Empty string if 'me' is null)
  * %n == user name (string; gotten from 'me', or from 'plrname' if 'me' is null)
  * %r == chroot (string)  (aka "dglroot" config var)
  * %g == game name
  * %s == short game name
  * %t == ttyrec file (full path&name) of the last game played.
+ * %w == 'watched' player (string; from 'plrname', or 'me' if 'plrname' is null)
+ * %N, %W, %L (char; first character of their lowercase counterparts)
  */
 char *
 dgl_format_str(int game, struct dg_user *me, char *str, char *plrname)
@@ -124,13 +131,26 @@ dgl_format_str(int game, struct dg_user *me, char *str, char *plrname)
 
     f = str;
     p = buf;
+    *p = '\0';
     end = buf + sizeof(buf) - 10;
 
     while (*f) {
 	if (ispercent) {
 	    switch (*f) {
-  	    case 'u':
+	    case 'u':
 		snprintf (p, end + 1 - p, "%d", globalconfig.shed_uid);
+		while (*p != '\0')
+		    p++;
+		break;
+	    case 'L':
+		if (me) {
+                    *p = me->username[0];
+		    p++;
+                }
+		*p = '\0';
+		break;
+	    case 'l':
+		if (me) snprintf (p, end + 1 - p, "%s", me->username);
 		while (*p != '\0')
 		    p++;
 		break;
@@ -141,14 +161,14 @@ dgl_format_str(int game, struct dg_user *me, char *str, char *plrname)
 		p++;
 		*p = '\0';
 		break;
-  	    case 'n':
+	    case 'n':
 		if (me) snprintf (p, end + 1 - p, "%s", me->username);
 		else if (plrname) snprintf(p, end + 1 - p, "%s", plrname);
 		else return NULL;
 		while (*p != '\0')
 		    p++;
 		break;
-  	    case 'g':
+	    case 'g':
 		if (game >= 0 && game < num_games && myconfig[game]) snprintf (p, end + 1 - p, "%s", myconfig[game]->game_name);
 		else return NULL;
 		while (*p != '\0')
@@ -167,6 +187,20 @@ dgl_format_str(int game, struct dg_user *me, char *str, char *plrname)
 		break;
 	    case 't':
 		snprintf (p, end + 1 - p, "%s", last_ttyrec);
+		while (*p != '\0')
+		    p++;
+		break;
+	    case 'W':
+		if (plrname) *p = plrname[0];
+		else if (me) *p = me->username[0];
+		else return NULL;
+		p++;
+		*p = '\0';
+		break;
+	    case 'w':
+		if (plrname) snprintf(p, end + 1 - p, "%s", plrname);
+		else if (me) snprintf (p, end + 1 - p, "%s", me->username);
+		else return NULL;
 		while (*p != '\0')
 		    p++;
 		break;
@@ -210,7 +244,7 @@ dgl_format_str(int game, struct dg_user *me, char *str, char *plrname)
 }
 
 int
-dgl_exec_cmdqueue(struct dg_cmdpart *queue, int game, struct dg_user *me)
+dgl_exec_cmdqueue_w(struct dg_cmdpart *queue, int game, struct dg_user *me, char *playername)
 {
     int i;
     struct dg_cmdpart *tmp = queue;
@@ -228,8 +262,8 @@ dgl_exec_cmdqueue(struct dg_cmdpart *queue, int game, struct dg_user *me)
     return_from_submenu = 0;
 
     while (tmp && !return_from_submenu) {
-	if (tmp->param1) strcpy(p1, dgl_format_str(game, me, tmp->param1, NULL));
-	if (tmp->param2) strcpy(p2, dgl_format_str(game, me, tmp->param2, NULL));
+	if (tmp->param1) strcpy(p1, dgl_format_str(game, me, tmp->param1, playername));
+	if (tmp->param2) strcpy(p2, dgl_format_str(game, me, tmp->param2, playername));
 
 	switch (tmp->cmd) {
 	default: break;
@@ -422,6 +456,11 @@ dgl_exec_cmdqueue(struct dg_cmdpart *queue, int game, struct dg_user *me)
 }
 
 
+int
+dgl_exec_cmdqueue(struct dg_cmdpart *queue, int game, struct dg_user *me)
+{
+    return dgl_exec_cmdqueue_w(queue, game, me, NULL);
+}
 
 static int
 sort_game_username(const void *g1, const void *g2)
@@ -667,7 +706,7 @@ populate_games (int xgame, int *l, struct dg_user *me)
 	      }
               replacestr++;
 
-	      ttrecdir = dgl_format_str(game, me, myconfig[game]->ttyrecdir, playername);
+	      ttrecdir = dgl_format_str(game, NULL, myconfig[game]->ttyrecdir, playername);
 	      if (!ttrecdir) continue;
               snprintf (ttyrecname, 130, "%s%s", ttrecdir, replacestr);
 

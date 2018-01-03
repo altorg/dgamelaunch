@@ -67,6 +67,7 @@ static int sortmode_number(const char *sortmode_name) {
 %token <i> TYPE_DGLCMD0 TYPE_DGLCMD1 TYPE_DGLCMD2
 %token TYPE_DEFINE_GAME
 %token <i> TYPE_BOOL
+%token TYPE_PATH_WATCH TYPE_WATCH_ARGS TYPE_WATCHCMDQUEUE
 
 %%
 
@@ -450,8 +451,25 @@ game_definition : TYPE_CMDQUEUE
 	    myconfig[ncnf]->postcmdqueue = curr_cmdqueue;
 	    curr_cmdqueue = NULL;
 	}
+	| TYPE_WATCHCMDQUEUE
+	{
+	    if (myconfig[ncnf]->watchcmdqueue) {
+		fprintf(stderr, "%s:%d: watchcommand queue defined twice, bailing out\n",
+			config, line);
+		exit(1);
+	    }
+	}
+	'=' cmdlist
+	{
+	    myconfig[ncnf]->watchcmdqueue = curr_cmdqueue;
+	    curr_cmdqueue = NULL;
+	}
 
 	| TYPE_GAME_ARGS '=' game_args_list
+	{
+	    /* nothing */
+	}
+	| TYPE_WATCH_ARGS '=' watch_args_list
 	{
 	    /* nothing */
 	}
@@ -484,6 +502,11 @@ game_definition : TYPE_CMDQUEUE
 	    case TYPE_PATH_GAME:
 		if (myconfig[ncnf]->game_path) free(myconfig[ncnf]->game_path);
 		myconfig[ncnf]->game_path = strdup ($3);
+		break;
+
+	    case TYPE_PATH_WATCH:
+		if (myconfig[ncnf]->watch_path) free(myconfig[ncnf]->watch_path);
+		myconfig[ncnf]->watch_path = strdup ($3);
 		break;
 
 	    case TYPE_NAME_GAME:
@@ -548,8 +571,30 @@ game_arg : TYPE_VALUE
 	}
 	;
 
+watch_arg : TYPE_VALUE
+	{
+	    char **tmpargs;
+	    if (myconfig[ncnf]->watch_args) {
+		myconfig[ncnf]->num_wargs++;
+		tmpargs = calloc((myconfig[ncnf]->num_wargs+1), sizeof(char *));
+		memcpy(tmpargs, myconfig[ncnf]->watch_args, (myconfig[ncnf]->num_wargs * sizeof(char *)));
+		free(myconfig[ncnf]->watch_args);
+		myconfig[ncnf]->watch_args = tmpargs;
+	    } else {
+		myconfig[ncnf]->num_wargs = 1;
+		myconfig[ncnf]->watch_args = calloc(2, sizeof(char *));
+	    }
+	    myconfig[ncnf]->watch_args[(myconfig[ncnf]->num_wargs)-1] = strdup($1);
+	    myconfig[ncnf]->watch_args[(myconfig[ncnf]->num_wargs)] = 0;
+	}
+	;
+
 game_args_list : game_arg
 	| game_arg ',' game_args_list
+	;
+
+watch_args_list : watch_arg
+	| watch_arg ',' watch_args_list
 	;
 
 game_definitions : game_definition
@@ -649,6 +694,7 @@ KeyType : TYPE_SUSER	{ $$ = TYPE_SUSER; }
 	| TYPE_PATH_CHROOT	{ $$ = TYPE_PATH_CHROOT; }
 	| TYPE_ALLOW_REGISTRATION	{ $$ = TYPE_ALLOW_REGISTRATION; }
 	| TYPE_PATH_GAME	{ $$ = TYPE_PATH_GAME; }
+	| TYPE_PATH_WATCH	{ $$ = TYPE_PATH_WATCH; }
         | TYPE_NAME_GAME        { $$ = TYPE_NAME_GAME; }
 	| TYPE_GAME_SHORT_NAME	{ $$ = TYPE_GAME_SHORT_NAME; }
 	| TYPE_GAME_ID	{ $$ = TYPE_GAME_ID; }
@@ -685,6 +731,7 @@ const char* lookup_token (int t)
     case TYPE_MENU_MAX_IDLE_TIME: return "menu_max_idle_time";
     case TYPE_PATH_CHROOT: return "chroot_path";
     case TYPE_PATH_GAME: return "game_path";
+    case TYPE_PATH_WATCH: return "watch_path";
     case TYPE_NAME_GAME: return "game_name";
     case TYPE_ALLOW_REGISTRATION: return "allow_new_nicks";
     case TYPE_GAME_SHORT_NAME: return "short_name";
@@ -696,6 +743,7 @@ const char* lookup_token (int t)
     case TYPE_PATH_TTYREC: return "ttyrecdir";
     case TYPE_PATH_INPROGRESS: return "inprogressdir";
     case TYPE_GAME_ARGS: return "game_args";
+    case TYPE_WATCH_ARGS: return "watch_args";
     case TYPE_MAX_IDLE_TIME: return "max_idle_time";
     case TYPE_RC_FMT: return "rc_fmt";
     case TYPE_WATCH_SORTMODE: return "sortmode";
