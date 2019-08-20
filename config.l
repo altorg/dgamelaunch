@@ -76,6 +76,7 @@ cursor		{ return TYPE_CURSOR; }
 "short_name"	{ return TYPE_GAME_SHORT_NAME; }
 "game_id"	{ return TYPE_GAME_ID; }
 "game_path"	{ return TYPE_PATH_GAME; }
+"watch_path"	{ return TYPE_PATH_WATCH; }
 "dglroot"	{ return TYPE_PATH_DGLDIR; }
 "spooldir"	{ return TYPE_PATH_SPOOL; }
 "banner"	{ return TYPE_PATH_BANNER; }
@@ -84,6 +85,7 @@ cursor		{ return TYPE_CURSOR; }
 "lockfile"	{ return TYPE_PATH_LOCKFILE; }
 "inprogressdir" { return TYPE_PATH_INPROGRESS; }
 "game_args"	{ return TYPE_GAME_ARGS; }
+"watch_args"	{ return TYPE_WATCH_ARGS; }
 extra_info_file { return TYPE_EXTRA_INFO_FILE; }
 "max_idle_time"	{ return TYPE_MAX_IDLE_TIME; }
 "rc_fmt"	{ return TYPE_RC_FMT; }
@@ -94,6 +96,7 @@ sortmode	{ return TYPE_WATCH_SORTMODE; }
 watch_columns	{ return TYPE_WATCH_COLUMNS; }
 commands	{ return TYPE_CMDQUEUE; }
 postcommands	{ return TYPE_POSTCMDQUEUE; }
+watchcommands	{ return TYPE_WATCHCMDQUEUE; }
 encoding	{ return TYPE_ENCODING; }
 locale		{ return TYPE_LOCALE; }
 default_term	{ return TYPE_DEFTERM; }

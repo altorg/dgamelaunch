@@ -949,6 +949,11 @@ game_get_column_data(struct dg_game *game,
         break;
 
     case SORTMODE_WINDOWSIZE:
+        if (myconfig[game->gamenum]->watch_path) {
+            snprintf(data, bufsz, "  N/A");
+            *hilite = CLR_GREEN;
+            break;
+        }
         snprintf(data, bufsz, "%3dx%3d", game->ws_col, game->ws_row);
 	if (showplayers)
 		snprintf(data, bufsz, "%dx%d", game->ws_col, game->ws_row);
@@ -1039,7 +1044,7 @@ inprogressmenu (int gameid)
 
   shm_init(&shm_dg_data, &shm_dg_game);
 
-  games = populate_games (gameid, &len, NULL); /* FIXME: should be 'me' instead of 'NULL' */
+  games = populate_games (gameid, &len, me);
   shm_update(shm_dg_data, games, len);
   games = sort_games (games, len, sortmode);
 
@@ -1274,7 +1279,49 @@ watchgame:
 		  setproctitle("%s [watching %s]", me->username, chosen_name);
 	      else
 		  setproctitle("<Anonymous> [watching %s]", chosen_name);
-              ttyplay_main (ttyrecname, 1, resizex, resizey);
+              if (myconfig[games[idx]->gamenum]->watch_path) {
+                  pid_t child;
+                  int gnum = games[idx]->gamenum;
+                  char **wargs = (char **)malloc(sizeof(char *) * (myconfig[gnum]->num_wargs+1));
+                  dgl_exec_cmdqueue_w(myconfig[gnum]->watchcmdqueue, gnum, me, chosen_name);
+                  /* fix the variables in the arguments */
+                  for (i = 0; i < myconfig[gnum]->num_wargs; i++) {
+                      wargs[i] = strdup(dgl_format_str(gnum, me, myconfig[gnum]->watch_args[i], chosen_name));
+                  }
+                  wargs[myconfig[gnum]->num_wargs] = NULL;
+                  /* tidy up signals before launching external process */
+                  signal(SIGWINCH, SIG_DFL);
+                  signal(SIGINT, SIG_DFL);
+                  signal(SIGQUIT, SIG_DFL);
+                  signal(SIGTERM, SIG_DFL);
+                  idle_alarm_set_enabled(0);
+                  /* launch program */
+                  child = fork();
+                  if (child < 0) {
+                      perror ("fork");
+                      fail ();
+                  }
+                  if (child == 0) {
+                      execvp (myconfig[gnum]->watch_path, wargs);
+                  } else {
+                      int status;
+                      (void) wait(&status);
+                  }
+                  /* reset signals on return */
+                  idle_alarm_set_enabled(1);
+                  signal(SIGHUP, catch_sighup);
+                  signal(SIGINT, catch_sighup);
+                  signal(SIGQUIT, catch_sighup);
+                  signal(SIGTERM, catch_sighup);
+                  signal(SIGWINCH, sigwinch_func);
+                  /* free temporary watch args */
+                  for (i = 0; i < myconfig[gnum]->num_wargs; i++) {
+                      free(wargs[i]);
+                  }
+                  free(wargs);
+              } else {
+                  ttyplay_main (ttyrecname, 1, resizex, resizey);
+              }
 	      if (loggedin)
 		  setproctitle("%s", me->username);
 	      else
@@ -1302,7 +1349,7 @@ watchgame:
 
       if (selected >= 0 && selected < len)
 	  selectedgame = strdup(games[selected]->name);
-      games = populate_games (gameid, &len, NULL); /* FIXME: should be 'me' instead of 'NULL' */
+      games = populate_games (gameid, &len, me);
       shm_update(shm_dg_data, games, len);
       games = sort_games (games, len, sortmode);
       if (selectedgame) {
@@ -1345,7 +1392,7 @@ inprogressdisplay (int gameid)
 
   shm_init(&shm_dg_data, &shm_dg_game);
 
-  games = populate_games (gameid, &len, NULL); /* FIXME: should be 'me' instead of 'NULL' */
+  games = populate_games (gameid, &len, me);
   shm_update(shm_dg_data, games, len);
   games = sort_games (games, len, sortmode);
 

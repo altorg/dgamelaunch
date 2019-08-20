@@ -30,9 +30,11 @@
 #ifdef USE_NCURSES_COLOR
 # define CLR_NORMAL  COLOR_PAIR(11)   | A_NORMAL
 # define CLR_RED     COLOR_PAIR(COLOR_RED)   | A_NORMAL
+# define CLR_GREEN   COLOR_PAIR(COLOR_GREEN) | A_NORMAL
 #else
 # define CLR_NORMAL  0
 # define CLR_RED     0
+# define CLR_GREEN   0
 #endif
 extern int color_remap[];
 
@@ -198,6 +200,7 @@ struct dg_game
 struct dg_config
 {
   char* game_path;
+  char* watch_path;
   char* game_name;
   char* game_id;
   char* shortname;
@@ -206,10 +209,13 @@ struct dg_config
   char* spool;
   char* inprogressdir;
     int num_args; /* # of bin_args */
+    int num_wargs; /* # of watch_args */
     char **bin_args; /* args for game binary */
+    char **watch_args; /* args for watch binary */
     char *rc_fmt;
     struct dg_cmdpart *cmdqueue;
     struct dg_cmdpart *postcmdqueue;
+    struct dg_cmdpart *watchcmdqueue;
     int max_idle_time;
     char *extra_info_file;
     int encoding; // -1 = run --print-charset
@@ -301,6 +307,7 @@ extern void sigwinch_func(int sig);
 extern struct dg_menu *dgl_find_menu(char *menuname);
 
 extern int dgl_exec_cmdqueue(struct dg_cmdpart *queue, int game, struct dg_user *me);
+extern int dgl_exec_cmdqueue_w(struct dg_cmdpart *queue, int game, struct dg_user *me, char *playername);
 
 extern void free_populated_games(struct dg_game **games, int len);
 extern struct dg_game **populate_games(int game, int *l, struct dg_user *me);
